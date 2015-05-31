@@ -1,0 +1,233 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <title>{{ info.title }}</title>
+
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+
+        <style>
+         .nav ul li:not(:last-child) {
+             border-bottom: none;
+         }
+
+         .nav ul li:first-child {
+             border-radius: 2px 2px 0 0;
+         }
+
+         .nav ul li:last-child {
+             border-radius: 0 0 2px 2px;
+         }
+
+         .nav ul li:first-child:last-child {
+             border-radius: 2px;
+         }
+
+         .nav ul {
+             list-style: none;
+             padding-left: 2rem;
+         }
+
+         .nav ul li a {
+             padding: 5px 10px;
+             color: inherit;
+         }
+
+         .nav li {
+             transition: border 0.25s;
+         }
+
+         .nav li.active {
+             border-left-width: 3px;
+         }
+
+         .group_link {
+             color: #333;
+             font-weight: bold;
+         }
+
+         a h3 {
+             margin: 0;
+         }
+
+         .panel-heading>a {
+             color: inherit;
+         }
+
+         .schema>.schema, .enum {
+             padding-left: 1rem;
+         }
+
+         .schema>.sKey {
+             font-weight: bold;
+         }
+
+         .schema>.sOptional {
+             font-style: italic;
+         }
+
+         .schema>.sType {
+             color: #5555aa;
+         }
+
+         .sDescription>p {
+             padding: 0;
+             margin: 0;
+             padding-left: 1rem;
+         }
+
+         .footer {
+             text-align: right;
+         }
+
+         {% for name, colors in _colors.items() %}
+         li.{{name}} {
+             background-color: #{{colors.background}};
+             border: thin solid #{{colors.border}};
+             color: #{{colors.text}};
+         }
+         .panel-heading.{{name}} {
+             background-color: #{{colors.background}};
+             color: #{{colors.text}};
+             border-bottom-color: #{{colors.border}};
+         }
+         .panel.{{name}} {
+             border-color: #{{colors.border}};
+         }
+         {% endfor %}
+
+        </style>
+    </head>
+    <body data-spy="scroll" data-target="#side-nav">
+
+        <div class="container">
+            <br>
+            <div class="row">
+                <div class="col-md-3" id="side-nav">
+                    <ul class="affix nav nav-list">
+                        {% for tag in _tags %}
+                        <a href="#tag_{{tag}}"
+                           class="group_link">{{ tag | capitalize }}</a>
+                        <ul>
+                            {% for path_name, method_name, method in (paths, tag) | has_tag %}
+                            <li class="{{method_name |lower}}">
+                                <a href="#{{(method_name, path_name) |sane}}">
+                                    <strong>{{method_name | upper}}</strong>
+                                    {{path_name}}
+                                </a>
+                            </li>
+
+                            {% endfor %}
+                        </ul>
+                        {% endfor %}
+
+                    </ul>
+                </div>
+                <div class="col-md-9">
+
+                    <div id="info" class="jumbotron">
+                        <h1>{{ info.title }} {{ info.version }}</h1>
+
+                        {% if info.description %}
+                        {{ info.description |md }}
+                        {% endif %}
+                    </div>
+
+                    <hr>
+
+                    {% for tag in _tags -%}
+                    <div class="group">
+                        <h1 id="tag_{{tag}}">{{tag | capitalize}}</h1>
+                        {% for path_name, method_name, method in (paths, tag) | has_tag -%}
+                        <div class="method panel panel-default {{method_name}}">
+                            <div class="panel-heading {{method_name}}"
+                                 id="{{(method_name, path_name) | sane}}">
+                                <a data-toggle="collapse"
+                                   aria-expanded="true"
+                                   aria-controls="{{(method_name, path_name, "d") | sane}}"
+                                   href="#{{(method_name, path_name, "d") | sane}}">
+                                    <h3>
+                                        <strong>{{ method_name | upper }}</strong>
+                                        {{ path_name }}
+                                        <span class="pull-right">
+                                            {{ method.summary }}
+                                        </span>
+                                    </h3>
+                                </a>
+                            </div>
+                            <div class="panel-body collapse in"
+                                 id="{{(method_name, path_name, "d") | sane}}">
+                                {% if method.description %}
+                                <h3>Description</h3>
+                                {{ method.description | md }}
+                                {% endif %}
+
+                                {% if method.parameters %}
+                                <h3>Parameters</h3>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Located in</th>
+                                            <th>Description</th>
+                                            <th>Required</th>
+                                            <th>Schema</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for parameter in method.parameters %}
+                                        <tr>
+                                            <td>{{ parameter.name }}</td>
+                                            <td>{{ parameter.in }}</td>
+                                            <td>{{ parameter.description}}</td>
+                                            <td>{{ parameter.required }}</td>
+                                            <td>{{ parameter | schema | render}}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                                {% endif %}
+
+                                <h3>Responses</h3>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Code</th>
+                                            <th>Description</th>
+                                            <th>Schema</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for code, response in method.responses.items() %}
+                                        <tr>
+                                            <td>{{ code }}</td>
+                                            <td>{{ response.description }}</td>
+                                            <td>{{ response | schema | render}}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+
+                    <footer class="footer">
+                        Generated by
+                        <a href="https://github.com/JuhaniImberg/swagger-render">
+                            Swagger-Render
+                        </a> {{__version__}}<br>
+                        {{__time__}}
+                    </footer>
+                </div>
+            </div>
+
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    </body>
+</html>
