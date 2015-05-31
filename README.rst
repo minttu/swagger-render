@@ -8,6 +8,7 @@ usage
 -----
 
 ::
+
     swagger-render api.yml > index.html
 
 license
