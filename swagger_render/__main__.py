@@ -63,6 +63,7 @@ def all_of(*items, root=None):
     if type(items[0]) in [str, int]:
         return items.pop()
 
+    items = resolve(root, items)
     data = items.pop(0)
 
     for item in items:
