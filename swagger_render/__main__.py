@@ -13,7 +13,7 @@ def resolve(base, val):
     Makes a normal dictionary from a JSON Schema one
     """
 
-    if type(val) == dict:
+    if type(val) is dict:
         data = {}
         for key, value in val.items():
             if key == "$ref" and type(value) is str:
@@ -21,20 +21,24 @@ def resolve(base, val):
                 assert value.pop(0) == "#"
                 pos = base
                 while len(value) > 0:
-                    pos = pos[value.pop(0)]
+                    where_to = value.pop(0)
+                    try:
+                        pos = pos[where_to]
+                    except KeyError:
+                        pos = pos[int(where_to)]
                 data.update(resolve(base, resolve(base, pos)))
             if key == "allOf":
-                return all_of(value)
+                return all_of(*value, root=base)
             else:
                 data[key] = resolve(base, value)
         return data
-    if type(val) == list:
+    if type(val) is list:
         return [resolve(base, item) for item in val]
     else:
         return val
 
 
-def all_of(*items):
+def all_of(*items, root=None):
     """
     Merges the given items recursively
 
@@ -55,7 +59,7 @@ def all_of(*items):
         data = items.pop()
         while len(items) > 0:
             data += items.pop()
-        return data
+        return resolve(root, data)
     if type(items[0]) in [str, int]:
         return items.pop()
 
@@ -64,11 +68,11 @@ def all_of(*items):
     for item in items:
         for key, value in item.items():
             if key in data:
-                data[key] = all_of(data[key], value)
+                data[key] = all_of(data[key], value, root=root)
             else:
                 data[key] = value
 
-    return data
+    return resolve(root, data)
 
 
 def merge_parameters(params1, params2):
@@ -121,6 +125,8 @@ def get_tags(data):
     tags = set()
     for methods in data["paths"].values():
         for method in methods.values():
+            if type(method) is list:
+                continue
             tags |= set(method.get("tags", [""]))
 
     return sorted(list(tags))

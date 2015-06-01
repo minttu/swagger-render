@@ -20,6 +20,8 @@ def has_tag(eval_ctx, value):
 
     for path_name, methods in sorted(paths.items()):
         for method_name, method in sorted(methods.items()):
+            if method_name == "parameters":
+                continue
             if tag == "" and len(method.get("tags", [])) == 0:
                 yield path_name, method_name, method
             elif len(tag) > 0 and tag in method.get("tags", []):
@@ -60,10 +62,11 @@ def render_object(eval_ctx, obj, offset=0):
         out += "<span class=\"sKey\">{}</span>".format(key)
         out += " ("
 
-        out += "<span class=\"sType\">{}".format(value["type"])
+        if "type" in value:
+            out += "<span class=\"sType\">{}".format(value["type"])
 
-        if value["type"] == "array" and "items" in value:
-            out += "[{}]".format(value["items"].get("type", "object"))
+            if value["type"] == "array" and "items" in value:
+                out += "[{}]".format(value["items"].get("type", "object"))
 
         out += "</span>"
 
@@ -76,7 +79,7 @@ def render_object(eval_ctx, obj, offset=0):
             out += ": <span class=\"sDescription\">{}</span>".format(
                 markdown.markdown(value["description"]))
 
-        if value["type"] == "object" or "items" in value:
+        if "type" in value and value["type"] == "object" or "items" in value:
             out += render_object(eval_ctx, value, offset + 1)
 
         if "enum" in value:
