@@ -81,23 +81,23 @@ def merge_parameters(params1, params2):
     its name and location
 
     >>> from pprint import pprint
-    >>> pprint(merge_parameters([{"name": "a", "location": "a"}, \
-                                 {"name": "b", "location": "a"}], \
-                                [{"name": "a", "location": "a", "data": "c"}, \
-                                 {"name": "b", "location": "b"}]))
-    [{'data': 'c', 'location': 'a', 'name': 'a'},
-     {'location': 'a', 'name': 'b'},
-     {'location': 'b', 'name': 'b'}]
+    >>> pprint(merge_parameters([{"name": "a", "in": "a"}, \
+                                 {"name": "b", "in": "a"}], \
+                                [{"name": "a", "in": "a", "data": "c"}, \
+                                 {"name": "b", "in": "b"}]))
+    [{'data': 'c', 'in': 'a', 'name': 'a'},
+     {'in': 'a', 'name': 'b'},
+     {'in': 'b', 'name': 'b'}]
     """
 
     data = {}
     for param in params1 + params2:
-        data[param["name"] + "_" + param["location"]] = all_of(param, {})
-    return sorted(list(data.values()), key=lambda x: x["name"] + x["location"])
+        data[param["name"] + "_" + param["in"]] = all_of(param, {})
+    return sorted(list(data.values()), key=lambda x: x["name"] + x["in"])
 
 
 def make_logical(data):
-    for methods in data.paths.values():
+    for methods in data["paths"].values():
         if "parameters" in methods:
             common_params = methods["parameters"]
             for method_name, method in methods.items():
@@ -141,6 +141,7 @@ def main(swagger_path):
     with open(swagger_path, "r") as fp:
         data = yaml.load(fp.read())
     data = resolve(data, data)
+    make_logical(data)
     template = env.get_template("page.html")
 
     print(template.render(__version__=__version__,
