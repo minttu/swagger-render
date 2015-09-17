@@ -7,23 +7,31 @@
 
         <title>{{ info.title }}</title>
 
-        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha/css/bootstrap.min.css" rel="stylesheet">
 
         <style>
-         .nav ul li:not(:last-child) {
-             border-bottom: none;
+         body {
+             font-size: 14px;
+             position: relative;
          }
 
-         .nav ul li:first-child {
-             border-radius: 2px 2px 0 0;
+         * {
+             box-sizing: border-box;
          }
 
-         .nav ul li:last-child {
-             border-radius: 0 0 2px 2px;
+         #side-nav {
+             top: 0;
+             position: fixed;
+             right: 0;
+             height: 100vh;
+             overflow-y: auto;
+             overflow-x: hidden;
+             padding-top: 1rem;
+             padding-bottom: 1rem;
          }
 
-         .nav ul li:first-child:last-child {
-             border-radius: 2px;
+         .col-md-9 {
+             padding-left: 2rem;
          }
 
          .nav ul {
@@ -38,12 +46,15 @@
 
          .nav li {
              transition: border 0.25s;
-             max-width: 250px;
              word-break: break-word;
          }
 
-         .nav li.active {
-             border-left-width: 3px;
+         .nav-item {
+             margin-bottom: 2px;
+         }
+
+         .nav-link.active {
+             text-decoration: underline;
          }
 
          .group_link {
@@ -55,7 +66,11 @@
              margin: 0;
          }
 
-         .panel-heading>a {
+         .card, .jumbotron, .form-control {
+             border-radius: 0;
+         }
+
+         .card-header>a {
              color: inherit;
          }
 
@@ -91,12 +106,12 @@
              border: thin solid #{{colors.border}};
              color: #{{colors.text}};
          }
-         .panel-heading.{{name}} {
+         .card-header.{{name}} {
              background-color: #{{colors.background}};
              color: #{{colors.text}};
              border-bottom-color: #{{colors.border}};
          }
-         .panel.{{name}} {
+         .card.{{name}} {
              border-color: #{{colors.border}};
          }
          {% endfor %}
@@ -105,25 +120,28 @@
     </head>
     <body data-spy="scroll" data-target="#side-nav">
 
-        <div class="container">
+        <div class="container-fluid">
             <br>
             <div class="row">
                 <div class="col-md-3" id="side-nav">
-                    <ul class="affix nav nav-list">
+                    <input id="search" type="text" class="form-control" placeholder="Search">
+                    <ul class="nav nav-list">
                         {% for tag in _tags %}
-                        <a href="#tag_{{tag}}"
-                           class="group_link">{{ tag | capitalize }}</a>
-                        <ul>
-                            {% for path_name, method_name, method in (paths, tag) | has_tag %}
-                            <li class="{{method_name |lower}}">
-                                <a href="#{{(method_name, path_name) |sane}}">
-                                    <strong>{{method_name | upper}}</strong>
-                                    {{path_name}}
-                                </a>
-                            </li>
+                        <span class="list-group">
+                            <a href="#tag_{{tag}}"
+                               class="group_link">{{ tag | capitalize }}</a>
+                            <ul class="nav">
+                                {% for path_name, method_name, method in (paths, tag) | has_tag %}
+                                <li class="nav-item {{method_name |lower}}">
+                                    <a class="nav-link" href="#{{(method_name, path_name) |sane}}">
+                                        <strong>{{method_name | upper}}</strong>
+                                        {{path_name}}
+                                    </a>
+                                </li>
 
-                            {% endfor %}
-                        </ul>
+                                {% endfor %}
+                            </ul>
+                        </span>
                         {% endfor %}
 
                     </ul>
@@ -144,13 +162,10 @@
                     <div class="group">
                         <h1 id="tag_{{tag}}">{{tag | capitalize}}</h1>
                         {% for path_name, method_name, method in (paths, tag) | has_tag -%}
-                        <div class="method panel panel-default {{method_name}}">
-                            <div class="panel-heading {{method_name}}"
+                        <div class="card method {{method_name}}">
+                            <div class="card-header {{method_name}}"
                                  id="{{(method_name, path_name) | sane}}">
-                                <a data-toggle="collapse"
-                                   aria-expanded="true"
-                                   aria-controls="{{(method_name, path_name, "d") | sane}}"
-                                   href="#{{(method_name, path_name, "d") | sane}}">
+                                <a href="#{{(method_name, path_name) | sane}}">
                                     <h3>
                                         <strong>{{ method_name | upper }}</strong>
                                         {{ path_name }}
@@ -160,7 +175,7 @@
                                     </h3>
                                 </a>
                             </div>
-                            <div class="panel-body collapse in"
+                            <div class="card-block"
                                  id="{{(method_name, path_name, "d") | sane}}">
                                 {% if method.description %}
                                 <h3>Description</h3>
@@ -230,6 +245,20 @@
 
         </div>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha/js/bootstrap.min.js"></script>
+        <script src="https://cdn.rawgit.com/joshaven/string_score/3b51216ccaa15a795df27502df5e8fbca554c0ab/string_score.min.js"></script>
+        <script>
+         $("#search").on("input", function(e) {
+             var text = e.target.value;
+             $(".nav-item").map(function(i, el) {
+                 var cmp = $(el).children()[0].innerText;
+                 if(cmp.score(text) > 0 || text.length == 0) {
+                     $(el).show();
+                 } else {
+                     $(el).hide();
+                 }
+             });
+         });
+        </script>
     </body>
 </html>
