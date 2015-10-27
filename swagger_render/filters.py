@@ -1,5 +1,5 @@
-from jinja2 import evalcontextfilter
 import markdown
+from jinja2 import evalcontextfilter
 
 
 @evalcontextfilter

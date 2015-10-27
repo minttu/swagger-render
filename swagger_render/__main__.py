@@ -1,15 +1,15 @@
 import sys
 import traceback
+from datetime import datetime
 
 import yaml
 import click
 from jinja2 import Environment, PackageLoader
-from .__version__ import __version__
-from datetime import datetime
 
-from .filters import add_filters
 from .colors import colors
 from .errors import InvalidReferenceError
+from .filters import add_filters
+from .__version__ import __version__
 
 
 def resolve(base, val):
