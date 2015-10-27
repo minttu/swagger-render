@@ -14,18 +14,22 @@ def sane(eval_ctx, value):
 
 
 @evalcontextfilter
-def has_tag(eval_ctx, value):
+def filter(eval_ctx, value):
     paths = value[0]
     tag = value[1]
+    care_about_tag = value[2]
 
     for path_name, methods in sorted(paths.items()):
         for method_name, method in sorted(methods.items()):
             if method_name == "parameters":
                 continue
-            if tag == "" and len(method.get("tags", [])) == 0:
+            if not care_about_tag:
                 yield path_name, method_name, method
-            elif len(tag) > 0 and tag in method.get("tags", []):
-                yield path_name, method_name, method
+            else:
+                if tag == "" and len(method.get("tags", [])) == 0:
+                    yield path_name, method_name, method
+                elif len(tag) > 0 and tag in method.get("tags", []):
+                    yield path_name, method_name, method
 
 
 @evalcontextfilter
@@ -96,4 +100,4 @@ def add_filters(env):
     env.filters["sane"] = sane
     env.filters["schema"] = schema
     env.filters["render"] = render_object
-    env.filters["has_tag"] = has_tag
+    env.filters["filter"] = filter

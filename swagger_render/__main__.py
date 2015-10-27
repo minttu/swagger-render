@@ -1,3 +1,6 @@
+import sys
+import traceback
+
 import yaml
 import click
 from jinja2 import Environment, PackageLoader
@@ -6,6 +9,7 @@ from datetime import datetime
 
 from .filters import add_filters
 from .colors import colors
+from .errors import InvalidReferenceError
 
 
 def resolve(base, val):
@@ -17,6 +21,7 @@ def resolve(base, val):
         data = {}
         for key, value in val.items():
             if key == "$ref" and type(value) is str:
+                f_value = value
                 value = value.split("/")
                 assert value.pop(0) == "#"
                 pos = base
@@ -25,7 +30,10 @@ def resolve(base, val):
                     try:
                         pos = pos[where_to]
                     except KeyError:
-                        pos = pos[int(where_to)]
+                        try:
+                            pos = pos[int(where_to)]
+                        except ValueError:
+                            raise InvalidReferenceError(f_value, where_to)
                 data.update(resolve(base, resolve(base, pos)))
             if key == "allOf":
                 return all_of(*value, root=base)
@@ -133,22 +141,58 @@ def get_tags(data):
     return sorted(list(tags))
 
 
-@click.command()
-@click.argument("swagger_path", type=click.Path(exists=True))
-def main(swagger_path):
-    env = Environment(loader=PackageLoader("swagger_render"))
-    add_filters(env)
-
-    with open(swagger_path, "r") as fp:
+def render(env, yaml_path, out):
+    with open(yaml_path, "r") as fp:
         data = yaml.load(fp.read())
     data = resolve(data, data)
     make_logical(data)
     template = env.get_template("page.html")
 
-    print(template.render(__version__=__version__,
-                          __time__=datetime.utcnow(),
-                          _colors=colors,
-                          _tags=get_tags(data), **data))
+    if out is not sys.stdout:
+        out.truncate(0)
+
+    out.write(template.render(__version__=__version__,
+                              __time__=datetime.utcnow(),
+                              _colors=colors,
+                              _tags=get_tags(data), **data))
+
+
+def render_watch_notify(env, yaml_path, out):
+    print("File changed, rendering", file=sys.stderr)
+    try:
+        render(env, yaml_path, out)
+    except Exception:
+        traceback.print_exc()
+
+
+def render_watch(env, yaml_path, out):
+    try:
+        import pyinotify
+    except ImportError:
+        raise click.UsageError(("Cant import pyinotify, "
+                                "please install with pip"))
+    wm = pyinotify.WatchManager()
+    notifier = pyinotify.Notifier(wm)
+    wm.add_watch(yaml_path, pyinotify.IN_CLOSE_WRITE)
+    notifier.loop(daemonize=False,
+                  callback=lambda _: render_watch_notify(env, yaml_path, out))
+
+
+@click.command()
+@click.argument("swagger_path", type=click.Path(exists=True))
+@click.option("--out", "-o", default=sys.stdout, type=click.File("w"),
+              help="Where to write the generated HTML")
+@click.option("--watch", "-w", is_flag=True)
+def main(swagger_path, out, watch):
+    env = Environment(loader=PackageLoader("swagger_render"))
+    add_filters(env)
+
+    if watch:
+        if out is sys.stdout:
+            raise click.BadParameter("-o needs to be specified if using -w")
+        render_watch(env, swagger_path, out)
+    else:
+        render(env, swagger_path, out)
 
 
 if __name__ == "__main__":
