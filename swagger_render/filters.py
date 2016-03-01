@@ -41,7 +41,11 @@ def schema(eval_ctx, value):
             if "items" in value:
                 return [schema(eval_ctx, value["items"])]
             return []
-        return value["type"]
+        ret = ""
+        if "format" in value:
+            ret += value["format"] + " "
+        ret += value["type"]
+        return ret
     return None
 
 
@@ -53,7 +57,9 @@ def render_object(eval_ctx, obj, offset=0):
         return obj
 
     if "type" in obj and obj["type"] == "array":
-        if "items" in obj and obj["items"].get("type", "object") == "object":
+        objecty = (obj["items"].get("type", "object") == "object"
+                   or "properties" in obj["items"])
+        if "items" in obj and objecty:
             return "<div class=\"schema\">[{}]</div>".format(
                 render_object(eval_ctx, obj["items"], offset + 1))
         return ""
@@ -66,10 +72,17 @@ def render_object(eval_ctx, obj, offset=0):
         out += "<span class=\"sKey\">{}</span>".format(key)
         out += " ("
 
-        if "type" in value:
-            out += "<span class=\"sType\">{}".format(value["type"])
+        itype = value.get("type", None)
+        if not itype and "properties" in value:
+            itype = "object"
 
-            if value["type"] == "array" and "items" in value:
+        if itype:
+            out += "<span class=\"sType\">"
+            if "format" in value:
+                out += "{} ".format(value["format"])
+            out += itype
+
+            if itype == "array" and "items" in value:
                 out += "[{}]".format(value["items"].get("type", "object"))
 
         out += "</span>"
@@ -83,7 +96,7 @@ def render_object(eval_ctx, obj, offset=0):
             out += ": <span class=\"sDescription\">{}</span>".format(
                 markdown.markdown(value["description"]))
 
-        if "type" in value and value["type"] == "object" or "items" in value:
+        if itype == "object" or "items" in value:
             out += render_object(eval_ctx, value, offset + 1)
 
         if "enum" in value:
